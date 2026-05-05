@@ -1,7 +1,7 @@
 // Tiny offline-first service worker.
 // Caches the app shell and serves it on subsequent loads.
 
-const CACHE = 'akuru-mithuru-v1';
+const CACHE = 'akuru-mithuru-v2';
 const SHELL = [
   '/',
   '/index.html',

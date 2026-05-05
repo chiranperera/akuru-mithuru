@@ -5,25 +5,29 @@
 //   2. If a Google ID token is present, fetch /api/progress and merge.
 //   3. After any mutation, write to localStorage immediately and queue a
 //      debounced push to /api/progress.
-//
-// The storage shape lives in localStorage under the key STORAGE_KEY.
 
-import { ensureLetterStats } from './tracker.js';
+import { ensureLetterStats, emptyLetterStat } from './tracker.js';
+import { TIERS } from '../data/letters.js';
 
 const STORAGE_KEY = 'akuru-mithuru:v1';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const PUSH_DEBOUNCE_MS = 1500;
 
 export function emptyProgress() {
   return {
     version: SCHEMA_VERSION,
     appName: 'අකුරු මිතුරු',
-    currentTier: 1,
+    tierProgress: {
+      1: { currentIndex: 0 },
+      2: { currentIndex: 0 },
+      3: { currentIndex: 0 },
+      4: { currentIndex: 0 }
+    },
     completedLessons: { tier1: 0, tier2: 0, tier3: 0, tier4: 0 },
     letterStats: ensureLetterStats({}),
     wordsSeen: [],
     streak: { count: 0, lastPlayed: null },
-    unlockedTiers: [1],
+    unlockedTiers: [1, 2, 3, 4],
     updatedAt: new Date().toISOString()
   };
 }
@@ -32,8 +36,7 @@ export function loadLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptyProgress();
-    const parsed = JSON.parse(raw);
-    return migrate(parsed);
+    return migrate(JSON.parse(raw));
   } catch (err) {
     console.warn('Failed to load local progress, starting fresh:', err);
     return emptyProgress();
@@ -56,9 +59,39 @@ function migrate(progress) {
   merged.letterStats = ensureLetterStats(progress.letterStats || {});
   merged.completedLessons = { ...base.completedLessons, ...(progress.completedLessons || {}) };
   merged.streak = { ...base.streak, ...(progress.streak || {}) };
-  if (!Array.isArray(merged.unlockedTiers)) merged.unlockedTiers = [1];
+  merged.tierProgress = { ...base.tierProgress, ...(progress.tierProgress || {}) };
+  for (const id of [1, 2, 3, 4]) {
+    if (!merged.tierProgress[id] || typeof merged.tierProgress[id].currentIndex !== 'number') {
+      merged.tierProgress[id] = { currentIndex: 0 };
+    }
+  }
+  if (!Array.isArray(merged.unlockedTiers)) merged.unlockedTiers = [1, 2, 3, 4];
   if (!Array.isArray(merged.wordsSeen)) merged.wordsSeen = [];
   return merged;
+}
+
+// ---- Per-tier helpers ----
+
+export function getTierIndex(progress, tierId) {
+  return progress.tierProgress?.[tierId]?.currentIndex ?? 0;
+}
+
+export function setTierIndex(progress, tierId, idx) {
+  if (!progress.tierProgress) progress.tierProgress = {};
+  if (!progress.tierProgress[tierId]) progress.tierProgress[tierId] = { currentIndex: 0 };
+  progress.tierProgress[tierId].currentIndex = Math.max(0, idx);
+}
+
+// Reset a tier: position back to 0; for letter tiers, clear letter stats.
+export function resetTier(progress, tierId) {
+  setTierIndex(progress, tierId, 0);
+  const tier = TIERS.find(t => t.id === tierId);
+  if (tier && tier.type === 'letter' && Array.isArray(tier.letters)) {
+    for (const ch of tier.letters) {
+      progress.letterStats[ch] = emptyLetterStat();
+    }
+  }
+  // Word tiers don't track per-word stats, so nothing else to clear there.
 }
 
 // ---- Cloud sync ----
@@ -71,7 +104,7 @@ export async function fetchCloud(idToken) {
     const res = await fetch('/api/progress', {
       headers: { 'Authorization': `Bearer ${idToken}` }
     });
-    if (res.status === 404) return null; // no cloud record yet
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error(`progress fetch failed: ${res.status}`);
     const json = await res.json();
     return migrate(json.progress || json);
@@ -98,25 +131,20 @@ export async function pushCloud(progress, idToken) {
       },
       body: JSON.stringify({ progress })
     });
-    if (!res.ok) {
-      console.warn('Cloud push failed:', res.status);
-    }
+    if (!res.ok) console.warn('Cloud push failed:', res.status);
   } catch (err) {
     console.warn('Cloud push failed (will retry on next change):', err);
   }
 }
 
-// Merge local and cloud — keep whichever is more recent. Letter stats merge
-// per-letter taking the higher counts.
 export function mergeProgress(local, cloud) {
   if (!cloud) return local;
   if (!local) return cloud;
   const localTime = new Date(local.updatedAt || 0).getTime();
   const cloudTime = new Date(cloud.updatedAt || 0).getTime();
-  // Take the newer base.
   const base = cloudTime > localTime ? cloud : local;
   const other = cloudTime > localTime ? local : cloud;
-  // But always take the max counters per letter (so progress is never lost).
+  // Always take the max counters per letter so progress is never lost.
   const stats = {};
   for (const ch of new Set([
     ...Object.keys(base.letterStats || {}),

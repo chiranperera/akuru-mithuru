@@ -53,38 +53,30 @@ export const TIERS = [
     name: 'ස්වර',
     nameEn: 'Vowels',
     type: 'letter',
-    letters: VOWELS.map(v => v.ch),
-    introBatchSize: 4 // introduce 4 new letters per lesson
+    letters: VOWELS.map(v => v.ch)
   },
   {
     id: 2,
     name: 'ව්‍යඤ්ජන',
     nameEn: 'Consonants',
     type: 'letter',
-    letters: CONSONANTS.map(c => c.ch),
-    introBatchSize: 4
+    letters: CONSONANTS.map(c => c.ch)
   },
   {
     id: 3,
     name: 'අකුරු දෙකේ වචන',
     nameEn: 'Two-letter words',
     type: 'word',
-    wordLength: 2,
-    wordsPerLesson: 6
+    wordLength: 2
   },
   {
     id: 4,
     name: 'අකුරු තුනේ වචන',
     nameEn: 'Three-letter words',
     type: 'word',
-    wordLength: 3,
-    wordsPerLesson: 5
+    wordLength: 3
   }
 ];
 
 // How many correct first-tries before a letter is considered "mastered".
 export const MASTERY_THRESHOLD = 5;
-
-// Tier unlock rules: a tier is unlocked once X% of its prerequisite letters
-// are mastered.
-export const TIER_UNLOCK_PERCENT = 0.7;

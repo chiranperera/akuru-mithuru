@@ -1,90 +1,91 @@
-// Lesson runner — handles both single-letter prompts and word prompts.
-// A word prompt walks the kid through each letter in sequence with the
-// surrounding word visible.
+// Lesson screen — free navigation through a tier's items.
+//
+// Layout:
+//   ┌─[←]────────[N/M]────[home]────[→]─┐
+//   │                                    │
+//   │             [BIG LETTER]           │
+//   │                                    │
+//   │        ( ✗ )       ( ✓ )           │
+//   └────────────────────────────────────┘
+//
+// TV remote bindings (no focus dance — every key does one thing):
+//   ArrowLeft  → mark current letter ✗
+//   ArrowRight → mark current letter ✓
+//   Enter / Space → ✓ (default action)
+//   ArrowUp    → previous item
+//   ArrowDown  → next item
+//   Escape     → home
+//
+// For word items, the letters are walked left-to-right within the word.
+// Each letter gets its own ✗/✓ judgement; on ✗ we show the bigger correct
+// letter and ask for a retry (75% credit if right on the second try).
 
+import { tierItems } from '../lib/picker.js';
+import { getTierIndex, setTierIndex } from '../lib/storage.js';
 import {
-  recordFirstTryCorrect,
-  recordRetryCorrect,
-  recordMissed
+  recordFirstTryCorrect, recordRetryCorrect, recordMissed
 } from '../lib/tracker.js';
 import { happyChime, softChime, celebrationFanfare, tapClick } from '../lib/audio.js';
 
-export function renderLesson(container, prompts, progress, onLessonDone) {
-  let i = 0;
-  const totalPrompts = prompts.length;
-  let promptResults = [];
+let currentTier = null;
+let currentItem = null;
+let items = [];
+let itemIdx = 0;
+let letterIdx = 0;       // for word items: which letter inside the word
+let attempt = 1;         // 1 = first try, 2 = retry mode
+let progressRef = null;
+let containerRef = null;
+let onLessonExitCb = null;
+let onPersistCb = null;
+let inFlight = false;    // disable input during chime/flash transitions
 
-  function next() {
-    if (i >= prompts.length) {
-      finishLesson();
-      return;
-    }
-    const p = prompts[i];
-    if (p.type === 'letter') {
-      runLetterPrompt(container, p.char, null, (result) => {
-        applyResult(p.char, result);
-        promptResults.push({ char: p.char, result });
-        i++;
-        next();
-      });
-    } else if (p.type === 'word') {
-      runWordPrompt(container, p, (perLetterResults) => {
-        for (const r of perLetterResults) {
-          applyResult(r.char, r.result);
-          promptResults.push(r);
-        }
-        i++;
-        next();
-      });
-    }
-  }
+export function renderLesson(container, tier, progress, callbacks) {
+  containerRef = container;
+  currentTier = tier;
+  progressRef = progress;
+  onLessonExitCb = callbacks.onLessonExit || (() => {});
+  onPersistCb = callbacks.onPersist || (() => {});
 
-  function applyResult(ch, result) {
-    if (result === 'first') recordFirstTryCorrect(progress.letterStats, ch);
-    else if (result === 'retry') recordRetryCorrect(progress.letterStats, ch);
-    else if (result === 'missed') recordMissed(progress.letterStats, ch);
-  }
+  items = tierItems(tier);
+  itemIdx = Math.min(getTierIndex(progress, tier.id), items.length);
+  if (itemIdx >= items.length) itemIdx = 0; // fully completed → restart from top
 
-  function finishLesson() {
-    celebrationFanfare();
-    const firsts = promptResults.filter(r => r.result === 'first').length;
-    const retries = promptResults.filter(r => r.result === 'retry').length;
-    const total = promptResults.length;
-    const stars = total === 0 ? 0 : firsts / total >= 0.85 ? 3 : firsts / total >= 0.6 ? 2 : 1;
-    container.innerHTML = `
-      <div class="screen lesson-done" translate="no">
-        <div class="celebration" translate="no">🎉</div>
-        <div class="stars" translate="no" aria-label="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
-        <p class="result-line" lang="si" translate="no">හරිම ලස්සනයි!</p>
-        <p class="result-stats" translate="no">${firsts} first try · ${retries} on retry · ${total - firsts - retries} missed</p>
-        <button class="big-btn primary" id="back-home" lang="si" translate="no">ගෙදර</button>
-      </div>
-    `;
-    const back = container.querySelector('#back-home');
-    back.addEventListener('click', () => { tapClick(); onLessonDone(promptResults); });
-    setTimeout(() => back.focus(), 80);
-  }
-
-  // Top-level lesson chrome: progress bar + back button.
-  container.innerHTML = `<div class="screen lesson" id="lesson-root" translate="no"></div>`;
-  next();
+  letterIdx = 0;
+  attempt = 1;
+  installKeyHandler();
+  showCurrent();
 }
 
-// ---- Single-letter prompt ----
+// ---- Rendering ----
 
-function runLetterPrompt(container, ch, contextWord, done) {
-  let attempt = 1; // 1 = first try, 2 = retry
+function showCurrent() {
+  if (!items.length) return;
+  if (itemIdx >= items.length) {
+    showCelebration();
+    return;
+  }
+  currentItem = items[itemIdx];
+  const total = items.length;
+  const isWord = currentItem.type === 'word';
+  const activeLetter = isWord ? currentItem.letters[letterIdx] : currentItem.char;
 
-  function show(big = false, hint = null) {
-    const root = container;
-    root.innerHTML = `
-      <div class="screen lesson" translate="no">
-        ${contextWord ? `
+  containerRef.innerHTML = `
+    <div class="screen lesson" translate="no">
+      <header class="lesson-top" translate="no">
+        <button class="nav-arrow nav-prev" id="nav-prev" aria-label="previous" translate="no">‹</button>
+        <div class="lesson-meta" translate="no">
+          <span class="meta-pos" translate="no">${itemIdx + 1} / ${total}</span>
+          <button class="link-btn home-btn" id="home-btn" lang="si" translate="no">ගෙදර</button>
+        </div>
+        <button class="nav-arrow nav-next" id="nav-next" aria-label="next" translate="no">›</button>
+      </header>
+
+      <main class="lesson-main" translate="no">
+        ${isWord ? `
           <div class="context-word sinhala" lang="si" translate="no">
-            ${contextWord.letters.map((c, idx) => `
-              <span class="ctx-letter ${c === ch && idx === contextWord.activeIndex ? 'active' : ''}
-                    ${idx < contextWord.activeIndex ? 'done' : ''}"
-                    lang="si" translate="no">${c}</span>
+            ${currentItem.letters.map((ch, i) => `
+              <span class="ctx-letter ${i === letterIdx ? 'active' : ''} ${i < letterIdx ? 'done' : ''}"
+                    lang="si" translate="no">${ch}</span>
             `).join('')}
           </div>
         ` : ''}
@@ -92,96 +93,207 @@ function runLetterPrompt(container, ch, contextWord, done) {
           ${attempt === 2 ? `
             <p class="retry-hint" lang="si" translate="no">බලන්න, හරියට!</p>
           ` : ''}
-          <div class="big-letter sinhala ${big ? 'huge' : ''}" lang="si" translate="no">${ch}</div>
+          <div class="big-letter sinhala ${attempt === 2 ? 'huge' : ''}" lang="si" translate="no">${activeLetter}</div>
         </div>
-        <div class="judge-row" translate="no">
-          <button class="judge-btn no" id="btn-no" aria-label="wrong" translate="no">✗</button>
-          <button class="judge-btn yes" id="btn-yes" aria-label="correct" translate="no">✓</button>
-        </div>
+      </main>
+
+      <footer class="lesson-foot" translate="no">
+        <button class="grade-btn no" id="btn-no" aria-label="wrong" translate="no">✗</button>
+        <button class="grade-btn yes" id="btn-yes" aria-label="correct" translate="no">✓</button>
+      </footer>
+    </div>
+  `;
+
+  containerRef.querySelector('#btn-yes').addEventListener('click', onYes);
+  containerRef.querySelector('#btn-no').addEventListener('click', onNo);
+  containerRef.querySelector('#nav-prev').addEventListener('click', prevItem);
+  containerRef.querySelector('#nav-next').addEventListener('click', nextItem);
+  containerRef.querySelector('#home-btn').addEventListener('click', exitToHome);
+
+  // Default focus on ✓ so Enter on remote = correct.
+  setTimeout(() => containerRef.querySelector('#btn-yes')?.focus(), 30);
+}
+
+// ---- Grading ----
+
+function onYes() {
+  if (inFlight) return;
+  tapClick();
+  happyChime();
+  flash('correct');
+  recordResult(attempt === 1 ? 'first' : 'retry');
+  scheduleAdvance(550);
+}
+
+function onNo() {
+  if (inFlight) return;
+  tapClick();
+  if (attempt === 1) {
+    softChime();
+    attempt = 2;
+    showCurrent();
+  } else {
+    flash('missed');
+    recordResult('missed');
+    scheduleAdvance(550);
+  }
+}
+
+function recordResult(kind) {
+  const isWord = currentItem.type === 'word';
+  const ch = isWord ? currentItem.letters[letterIdx] : currentItem.char;
+  if (kind === 'first') recordFirstTryCorrect(progressRef.letterStats, ch);
+  else if (kind === 'retry') recordRetryCorrect(progressRef.letterStats, ch);
+  else if (kind === 'missed') recordMissed(progressRef.letterStats, ch);
+  // Mark this word as seen.
+  if (isWord && !progressRef.wordsSeen.includes(currentItem.word)) {
+    progressRef.wordsSeen.push(currentItem.word);
+  }
+  onPersistCb();
+}
+
+function scheduleAdvance(ms) {
+  inFlight = true;
+  setTimeout(() => {
+    inFlight = false;
+    advance();
+  }, ms);
+}
+
+function advance() {
+  attempt = 1;
+  const isWord = currentItem.type === 'word';
+  if (isWord && letterIdx < currentItem.letters.length - 1) {
+    letterIdx++;
+    showCurrent();
+    return;
+  }
+  // Move to next item.
+  letterIdx = 0;
+  itemIdx++;
+  setTierIndex(progressRef, currentTier.id, itemIdx);
+  onPersistCb();
+  if (itemIdx >= items.length) {
+    showCelebration();
+  } else {
+    showCurrent();
+  }
+}
+
+// ---- Navigation ----
+
+function prevItem() {
+  if (inFlight || attempt === 2) return;
+  if (itemIdx > 0) {
+    itemIdx--;
+    letterIdx = 0;
+    setTierIndex(progressRef, currentTier.id, itemIdx);
+    onPersistCb();
+    tapClick();
+    showCurrent();
+  }
+}
+
+function nextItem() {
+  if (inFlight || attempt === 2) return;
+  if (itemIdx < items.length - 1) {
+    itemIdx++;
+    letterIdx = 0;
+    setTierIndex(progressRef, currentTier.id, itemIdx);
+    onPersistCb();
+    tapClick();
+    showCurrent();
+  } else if (itemIdx === items.length - 1) {
+    // Already at last — show celebration if all answered? Or just exit.
+    showCelebration();
+  }
+}
+
+function exitToHome() {
+  uninstallKeyHandler();
+  tapClick();
+  onLessonExitCb();
+}
+
+// ---- Celebration on tier completion ----
+
+function showCelebration() {
+  celebrationFanfare();
+  containerRef.innerHTML = `
+    <div class="screen lesson-done" translate="no">
+      <div class="celebration" translate="no">🎉</div>
+      <p class="result-line" lang="si" translate="no">හරිම ලස්සනයි!</p>
+      <p class="result-stats lang-en" translate="no">${currentTier.nameEn} complete</p>
+      <div class="done-actions" translate="no">
+        <button class="big-btn primary" id="back-home" lang="si" translate="no">ගෙදර</button>
+        <button class="big-btn secondary" id="restart-tier" lang="si" translate="no">නැවතත්</button>
       </div>
-    `;
-    container.querySelector('#btn-yes').addEventListener('click', onYes);
-    container.querySelector('#btn-no').addEventListener('click', onNo);
-    setTimeout(() => container.querySelector('#btn-yes').focus(), 30);
-  }
-
-  function onYes() {
+    </div>
+  `;
+  const back = containerRef.querySelector('#back-home');
+  const restart = containerRef.querySelector('#restart-tier');
+  back.addEventListener('click', () => { tapClick(); exitToHome(); });
+  restart.addEventListener('click', () => {
     tapClick();
-    happyChime();
-    flash(container, 'correct');
-    setTimeout(() => done(attempt === 1 ? 'first' : 'retry'), 600);
-  }
-
-  function onNo() {
-    tapClick();
-    if (attempt === 1) {
-      // Enter retry mode: show the correct letter even bigger.
-      softChime();
-      attempt = 2;
-      show(true);
-    } else {
-      // Already retried — count as missed and move on.
-      flash(container, 'missed');
-      setTimeout(() => done('missed'), 500);
-    }
-  }
-
-  show(false);
+    itemIdx = 0;
+    letterIdx = 0;
+    attempt = 1;
+    setTierIndex(progressRef, currentTier.id, 0);
+    onPersistCb();
+    showCurrent();
+  });
+  setTimeout(() => back.focus(), 80);
 }
 
-// ---- Word prompt: walk through letters in sequence ----
+// ---- Visual flash ----
 
-function runWordPrompt(container, prompt, done) {
-  const { word, letters } = prompt;
-  const results = [];
-  let idx = 0;
-
-  function nextLetter() {
-    if (idx >= letters.length) {
-      // Whole word done.
-      const anyMissed = results.some(r => r.result === 'missed');
-      if (!anyMissed) {
-        flashWord(container, word, 'correct');
-        setTimeout(() => done(results), 700);
-      } else {
-        // Word marked as failed — but per-letter tracking already recorded
-        // each letter's individual result. Move on.
-        setTimeout(() => done(results), 400);
-      }
-      return;
-    }
-    const letter = letters[idx];
-    runLetterPrompt(
-      container,
-      letter,
-      { letters, activeIndex: idx },
-      (result) => {
-        results.push({ char: letter, result });
-        idx++;
-        nextLetter();
-      }
-    );
-  }
-
-  nextLetter();
-}
-
-// ---- Visual flash for feedback ----
-
-function flash(container, kind) {
+function flash(kind) {
   const el = document.createElement('div');
   el.className = `flash ${kind}`;
   el.textContent = kind === 'correct' ? '✓' : '✗';
-  container.appendChild(el);
+  containerRef.appendChild(el);
   setTimeout(() => el.remove(), 600);
 }
 
-function flashWord(container, word, kind) {
-  const el = document.createElement('div');
-  el.className = `flash ${kind} word-flash sinhala`;
-  el.lang = 'si';
-  el.setAttribute('translate', 'no');
-  el.textContent = word;
-  container.appendChild(el);
-  setTimeout(() => el.remove(), 700);
+// ---- Keyboard ----
+
+function lessonKeys(e) {
+  if (!containerRef || !document.body.contains(containerRef)) return;
+  // If we're on the celebration screen, let default focus traversal handle it.
+  if (containerRef.querySelector('.lesson-done')) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+      e.preventDefault();
+      onNo();
+      break;
+    case 'ArrowRight':
+    case 'Enter':
+    case ' ':
+      e.preventDefault();
+      onYes();
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      prevItem();
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      nextItem();
+      break;
+    case 'Escape':
+    case 'Backspace':
+      e.preventDefault();
+      exitToHome();
+      break;
+  }
+}
+
+export function installKeyHandler() {
+  document.removeEventListener('keydown', lessonKeys);
+  document.addEventListener('keydown', lessonKeys);
+}
+
+export function uninstallKeyHandler() {
+  document.removeEventListener('keydown', lessonKeys);
 }
