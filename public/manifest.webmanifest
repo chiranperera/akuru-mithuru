@@ -1,0 +1,19 @@
+{
+  "name": "අකුරු මිතුරු",
+  "short_name": "අකුරු මිතුරු",
+  "description": "Sinhala letter learning app for kids",
+  "lang": "si",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fff7e6",
+  "theme_color": "#ff7a00",
+  "categories": ["education", "kids"],
+  "icons": [
+    { "src": "/icons/icon.svg",     "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

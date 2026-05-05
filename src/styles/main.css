@@ -1,0 +1,388 @@
+/* ===============================================
+   අකුරු මිතුරු — main stylesheet
+   Mobile-first, TV breakpoint at 1280px.
+   =============================================== */
+
+:root {
+  --bg: #fff7e6;
+  --bg-card: #ffffff;
+  --primary: #ff7a00;
+  --primary-dark: #e36400;
+  --secondary: #4caf50;
+  --danger: #ef4444;
+  --text: #2d2418;
+  --text-muted: #8b8270;
+  --gold: #ffc857;
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.14);
+  --radius: 18px;
+  --letter-font: 'Noto Sans Sinhala', 'Iskoola Pota', system-ui, sans-serif;
+  --ui-font: 'Noto Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Sinhala-specific font wherever Sinhala text appears */
+.sinhala, [lang="si"] {
+  font-family: var(--letter-font);
+  font-feature-settings: 'liga' on, 'calt' on;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible {
+  outline: 4px solid var(--primary);
+  outline-offset: 4px;
+}
+
+/* ===== Home screen ===== */
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem;
+  gap: 1.5rem;
+}
+
+.home-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-card);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  box-shadow: var(--shadow);
+  font-weight: 700;
+}
+
+.streak.active {
+  background: linear-gradient(135deg, #ffba6c, #ff7a00);
+  color: white;
+}
+
+.streak-flame { font-size: 1.4rem; }
+.streak-count { font-size: 1.2rem; }
+
+.parent-corner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.parent-name { font-weight: 600; }
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  text-decoration: underline;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+}
+
+.home-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  flex: 1;
+  text-align: center;
+}
+
+.app-title {
+  font-size: clamp(2.5rem, 9vw, 4.5rem);
+  margin: 0.5rem 0 0;
+  color: var(--primary);
+  text-shadow: 0 2px 0 rgba(255, 122, 0, 0.15);
+}
+
+.tier-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 1.6rem 1.4rem;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tier-label {
+  font-size: clamp(1.4rem, 5vw, 1.8rem);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tier-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.big-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 1rem 2.4rem;
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
+  font-weight: 700;
+  box-shadow: 0 4px 0 var(--primary-dark);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  min-width: 200px;
+}
+
+.big-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--primary-dark);
+}
+
+.continue-btn {
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  padding: 1.1rem 2.6rem;
+}
+
+.mastered-summary {
+  width: 100%;
+  max-width: 460px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  box-shadow: var(--shadow);
+}
+
+.mastered-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+.mastered-num { font-size: 2rem; font-weight: 800; color: var(--primary); }
+.mastered-of { color: var(--text-muted); }
+.mastered-label { color: var(--text); font-size: 1rem; margin-left: 0.3rem; }
+
+.mastered-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+  gap: 0.4rem;
+  justify-items: center;
+}
+.mini-letter {
+  font-size: 1.4rem;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f3ede0;
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+.mini-letter.mastered {
+  background: var(--gold);
+  color: var(--text);
+  opacity: 1;
+  box-shadow: 0 1px 4px rgba(255, 200, 87, 0.4);
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ===== Lesson screen ===== */
+
+.lesson {
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+}
+
+.context-word {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 1.5rem;
+  background: var(--bg-card);
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.ctx-letter {
+  font-size: clamp(2rem, 7vw, 3rem);
+  color: var(--text-muted);
+  opacity: 0.55;
+  padding: 0 0.4rem;
+}
+.ctx-letter.done { color: var(--secondary); opacity: 0.85; }
+.ctx-letter.active {
+  color: var(--primary);
+  opacity: 1;
+  border-bottom: 4px solid var(--primary);
+}
+
+.prompt-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.retry-mode {
+  background: linear-gradient(180deg, transparent, rgba(255, 200, 87, 0.18));
+  border-radius: var(--radius);
+  padding: 1rem 0;
+}
+
+.retry-hint {
+  color: var(--primary-dark);
+  font-size: 1.2rem;
+  margin: 0 0 0.6rem;
+  font-weight: 700;
+}
+
+.big-letter {
+  font-size: clamp(8rem, 36vw, 16rem);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text);
+  user-select: none;
+}
+.big-letter.huge {
+  font-size: clamp(10rem, 50vw, 22rem);
+  color: var(--primary);
+}
+
+.judge-row {
+  display: flex;
+  gap: 1.4rem;
+  padding: 1rem;
+  width: 100%;
+  max-width: 460px;
+  justify-content: space-between;
+}
+
+.judge-btn {
+  flex: 1;
+  font-size: 2.4rem;
+  padding: 1.2rem 0;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 800;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.judge-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+}
+.judge-btn.yes { background: var(--secondary); color: white; }
+.judge-btn.no  { background: var(--danger); color: white; }
+
+/* ===== Lesson done ===== */
+
+.lesson-done {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+}
+.celebration { font-size: 5rem; animation: pop 0.5s ease-out; }
+.stars { font-size: 2.6rem; letter-spacing: 0.4rem; }
+.result-line { font-size: 1.6rem; font-weight: 700; margin: 0.4rem 0; }
+.result-stats { color: var(--text-muted); font-size: 0.95rem; }
+
+@keyframes pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ===== Flash overlay ===== */
+
+.flash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12rem;
+  font-weight: 900;
+  color: white;
+  background: rgba(76, 175, 80, 0.6);
+  z-index: 100;
+  pointer-events: none;
+  animation: flashIn 0.5s ease-out forwards;
+}
+.flash.missed { background: rgba(239, 68, 68, 0.55); }
+.flash.word-flash { font-size: clamp(6rem, 22vw, 12rem); }
+
+@keyframes flashIn {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 1; transform: scale(1.05); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+
+/* ===== TV / large screen layout ===== */
+
+@media (min-width: 1280px) {
+  :root { --radius: 28px; }
+
+  .screen { padding: 3rem 5rem; gap: 3rem; }
+
+  .home-main { gap: 2.5rem; }
+
+  .app-title { font-size: 6rem; }
+  .tier-card { max-width: 720px; padding: 2.4rem 2rem; }
+  .tier-label { font-size: 2.4rem; }
+  .continue-btn { font-size: 2.4rem; padding: 1.5rem 3.4rem; }
+
+  .mastered-summary { max-width: 720px; padding: 1.8rem; }
+  .mini-letter { font-size: 1.8rem; width: 46px; height: 46px; }
+
+  .big-letter { font-size: 24rem; }
+  .big-letter.huge { font-size: 30rem; }
+
+  .judge-row { max-width: 720px; gap: 2.2rem; padding: 2rem; }
+  .judge-btn { font-size: 4rem; padding: 2rem 0; }
+}
+
+/* ===== Forced single-language guard ===== */
+[translate="no"] { -webkit-translate: no; translate: no; }

@@ -1,20 +1,52 @@
 <!DOCTYPE html>
-<html lang="si">
+<html lang="si" translate="no" class="notranslate">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+
+  <!-- Translation guards: tell every browser/translator to leave this app alone -->
+  <meta name="google" content="notranslate">
+  <meta http-equiv="Content-Language" content="si">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="අකුරු මිතුරු">
+  <meta name="theme-color" content="#ff7a00">
+
   <title>අකුරු මිතුරු</title>
-  <style>
-    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #fff7e6; font-family: system-ui, -apple-system, sans-serif; }
-    .wrap { text-align: center; }
-    h1 { font-size: clamp(3rem, 12vw, 6rem); color: #ff7a00; margin: 0; }
-    p { color: #888; margin-top: 1rem; font-size: 1.1rem; }
-  </style>
+  <meta name="description" content="Akuru Mithuru — a Sinhala letter learning app for kids.">
+
+  <!-- Web manifest (PWA) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+
+  <!-- Icon -->
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- Noto Sans Sinhala from Google Fonts (Unicode, full Sinhala block) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;700&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/src/styles/main.css">
 </head>
-<body>
-  <div class="wrap">
-    <h1>අකුරු මිතුරු</h1>
-    <p>Coming soon</p>
+<body translate="no" class="notranslate">
+  <!-- App root -->
+  <div id="app" lang="si" translate="no">
+    <div class="screen" translate="no" style="align-items:center;justify-content:center;">
+      <h1 class="app-title sinhala" lang="si" translate="no">අකුරු මිතුරු</h1>
+      <p class="hint" translate="no">Loading…</p>
+    </div>
   </div>
+
+  <!-- Module entry -->
+  <script type="module" src="/src/app.js"></script>
+
+  <!-- Belt-and-suspenders: a tiny inline script that re-asserts lang/translate
+       in case any extension messes with these on first paint. -->
+  <script>
+    document.documentElement.setAttribute('lang', 'si');
+    document.documentElement.setAttribute('translate', 'no');
+    document.documentElement.classList.add('notranslate');
+  </script>
 </body>
 </html>
