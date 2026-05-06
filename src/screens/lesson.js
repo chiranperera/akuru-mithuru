@@ -81,20 +81,19 @@ function showCurrent() {
       </header>
 
       <main class="lesson-main" translate="no">
+        ${attempt === 2 ? `
+          <p class="retry-hint" lang="si" translate="no">බලන්න, හරියට!</p>
+        ` : ''}
         ${isWord ? `
-          <div class="context-word sinhala" lang="si" translate="no">
+          <div class="word-display sinhala ${attempt === 2 ? 'retry-mode' : ''}" lang="si" translate="no">
             ${currentItem.letters.map((ch, i) => `
-              <span class="ctx-letter ${i === letterIdx ? 'active' : ''} ${i < letterIdx ? 'done' : ''}"
+              <span class="word-letter ${i === letterIdx ? 'active' : i < letterIdx ? 'done' : 'pending'}"
                     lang="si" translate="no">${ch}</span>
             `).join('')}
           </div>
-        ` : ''}
-        <div class="prompt-area ${attempt === 2 ? 'retry-mode' : ''}" translate="no">
-          ${attempt === 2 ? `
-            <p class="retry-hint" lang="si" translate="no">බලන්න, හරියට!</p>
-          ` : ''}
+        ` : `
           <div class="big-letter sinhala ${attempt === 2 ? 'huge' : ''}" lang="si" translate="no">${activeLetter}</div>
-        </div>
+        `}
       </main>
 
       <footer class="lesson-foot" translate="no">

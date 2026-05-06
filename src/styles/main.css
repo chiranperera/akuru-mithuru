@@ -349,39 +349,6 @@ button:focus-visible {
   gap: 1.2rem;
 }
 
-.context-word {
-  display: flex;
-  gap: 0.3rem;
-  background: var(--bg-card);
-  padding: 0.6rem 1.1rem;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-.ctx-letter {
-  font-size: clamp(1.8rem, 6.5vw, 2.6rem);
-  color: var(--text-muted);
-  opacity: 0.55;
-  padding: 0 0.4rem;
-  transition: color 0.15s ease, opacity 0.15s ease;
-}
-.ctx-letter.done { color: var(--secondary); opacity: 0.85; }
-.ctx-letter.active {
-  color: var(--primary);
-  opacity: 1;
-  border-bottom: 4px solid var(--primary);
-}
-
-.prompt-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  padding: 1rem 0;
-  border-radius: var(--radius);
-}
-.retry-mode {
-  background: linear-gradient(180deg, transparent, rgba(255, 200, 87, 0.18));
-}
 .retry-hint {
   color: var(--primary-dark);
   font-size: 1.1rem;
@@ -389,6 +356,7 @@ button:focus-visible {
   font-weight: 700;
 }
 
+/* Single big letter (Tier 1 vowels, Tier 2 consonants) */
 .big-letter {
   font-size: clamp(7rem, 32vw, 14rem);
   font-weight: 500;
@@ -398,6 +366,49 @@ button:focus-visible {
 .big-letter.huge {
   font-size: clamp(9rem, 44vw, 19rem);
   color: var(--primary);
+}
+
+/* Whole-word display (Tier 3 two-letter, Tier 4 three-letter words).
+   The word stays visible end-to-end; only the active letter is highlighted. */
+.word-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: clamp(0.4rem, 2vw, 1rem);
+  padding: 1.5rem 0.6rem;
+  border-radius: var(--radius);
+  transition: background 0.25s ease;
+}
+.word-display.retry-mode {
+  background: linear-gradient(180deg, transparent, rgba(255, 200, 87, 0.22));
+}
+
+.word-letter {
+  font-size: clamp(5rem, 22vw, 8.5rem);
+  font-weight: 500;
+  line-height: 1;
+  transition: color 0.25s ease, opacity 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  display: inline-block;
+}
+.word-letter.pending {
+  color: var(--text-muted);
+  opacity: 0.32;
+}
+.word-letter.done {
+  color: var(--secondary);
+  opacity: 0.55;
+}
+.word-letter.active {
+  color: var(--primary);
+  opacity: 1;
+  font-weight: 700;
+  border-bottom: 6px solid var(--primary);
+  padding: 0 0.05em 0.04em;
+  transform: scale(1.05);
+}
+.word-display.retry-mode .word-letter.active {
+  transform: scale(1.18);
+  text-shadow: 0 0 24px rgba(255, 122, 0, 0.35);
 }
 
 /* ===== Big circular grading buttons ===== */
@@ -569,6 +580,10 @@ button:focus-visible {
 
   .big-letter { font-size: 22rem; }
   .big-letter.huge { font-size: 28rem; }
+
+  .word-display { gap: 1.4rem; padding: 2rem 1rem; }
+  .word-letter { font-size: 14rem; }
+  .word-letter.active { border-bottom-width: 12px; }
 
   .lesson-foot { max-width: 800px; gap: 3rem; padding: 1.5rem 2rem; }
   .grade-btn {
