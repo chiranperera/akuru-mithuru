@@ -1,12 +1,62 @@
-// Tiny synthesized chimes. No external audio files — keeps the bundle small
-// and the app fully offline-capable.
+// Audio cues. Tries file-based first, falls back to synthesized chimes.
+//
+// Drop mp3 files in /audio/ to override:
+//   /audio/success.mp3      — letter/word identified correctly
+//   /audio/failure.mp3      — letter/word missed (after retry)
+//   /audio/retry.mp3        — first attempt wrong, "look again"
+//   /audio/celebration.mp3  — tier completion fanfare
+//   /audio/tap.mp3          — UI button click (optional)
+//
+// On module load we probe each path with a HEAD request; if the file is
+// present, future calls play it. If not, the synth fallback runs.
+
+const FILE_MAP = {
+  success: '/audio/success.mp3',
+  failure: '/audio/failure.mp3',
+  retry: '/audio/retry.mp3',
+  celebration: '/audio/celebration.mp3',
+  tap: '/audio/tap.mp3'
+};
+
+const audioInstances = {};
+const probed = {};
+
+(function probeAll() {
+  for (const [name, url] of Object.entries(FILE_MAP)) {
+    fetch(url, { method: 'HEAD' })
+      .then(res => {
+        if (res.ok) {
+          const audio = new Audio(url);
+          audio.preload = 'auto';
+          audio.volume = 0.85;
+          audioInstances[name] = audio;
+        }
+        probed[name] = true;
+      })
+      .catch(() => { probed[name] = true; });
+  }
+})();
+
+function playFileOrSynth(name, synthFn) {
+  const audio = audioInstances[name];
+  if (audio) {
+    try {
+      audio.currentTime = 0;
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => synthFn());
+      return;
+    } catch (e) {
+      // fall through to synth
+    }
+  }
+  synthFn();
+}
+
+// ---- Synth fallbacks ----
 
 let ctx = null;
-
 function getCtx() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-  }
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
 }
@@ -27,27 +77,45 @@ function tone(freq, duration, when = 0, type = 'sine', gain = 0.18) {
   osc.stop(start + duration + 0.05);
 }
 
+// ---- Public API ----
+
 export function happyChime() {
-  // Major arpeggio C E G
-  tone(523.25, 0.18, 0);
-  tone(659.25, 0.18, 0.10);
-  tone(783.99, 0.30, 0.20);
+  // Successful identification — major arpeggio.
+  playFileOrSynth('success', () => {
+    tone(523.25, 0.18, 0);
+    tone(659.25, 0.18, 0.10);
+    tone(783.99, 0.30, 0.20);
+  });
+}
+
+export function failChime() {
+  // Final miss after retry — descending minor.
+  playFileOrSynth('failure', () => {
+    tone(330, 0.18, 0, 'sawtooth', 0.14);
+    tone(247, 0.30, 0.12, 'sawtooth', 0.14);
+  });
 }
 
 export function softChime() {
-  // Two soft notes, slightly down — for retry needed
-  tone(440, 0.22, 0, 'sine', 0.14);
-  tone(370, 0.30, 0.12, 'sine', 0.14);
+  // First wrong — "let's try again" — gentle, not punitive.
+  playFileOrSynth('retry', () => {
+    tone(440, 0.22, 0, 'sine', 0.14);
+    tone(370, 0.30, 0.12, 'sine', 0.14);
+  });
 }
 
 export function celebrationFanfare() {
-  // C E G C up
-  tone(523.25, 0.20, 0);
-  tone(659.25, 0.20, 0.12);
-  tone(783.99, 0.20, 0.24);
-  tone(1046.50, 0.40, 0.36, 'triangle', 0.20);
+  // Tier complete — rising arpeggio plus triangle topper.
+  playFileOrSynth('celebration', () => {
+    tone(523.25, 0.20, 0);
+    tone(659.25, 0.20, 0.12);
+    tone(783.99, 0.20, 0.24);
+    tone(1046.50, 0.40, 0.36, 'triangle', 0.20);
+  });
 }
 
 export function tapClick() {
-  tone(880, 0.05, 0, 'square', 0.06);
+  playFileOrSynth('tap', () => {
+    tone(880, 0.05, 0, 'square', 0.06);
+  });
 }
