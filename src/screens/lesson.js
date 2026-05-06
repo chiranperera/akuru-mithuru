@@ -30,7 +30,6 @@ import {
   happyChime, softChime, failChime, celebrationFanfare, tapClick
 } from '../lib/audio.js';
 
-const FULL_WORD_DISPLAY_MS = 5000; // celebrate the completed word for 5s
 const ADVANCE_DELAY_MS = 700;       // pause after each grade so colors register
 
 let currentTier = null;
@@ -47,7 +46,6 @@ let inFlight = false;
 let wordLetterResults = []; // per-letter results for the current word
 let letterResult = null;    // result for current single letter
 let showingFullWord = false;
-let fullWordTimer = null;
 
 export function renderLesson(container, tier, progress, callbacks) {
   containerRef = container;
@@ -71,7 +69,6 @@ function resetItemState() {
   wordLetterResults = [];
   letterResult = null;
   showingFullWord = false;
-  if (fullWordTimer) { clearTimeout(fullWordTimer); fullWordTimer = null; }
 }
 
 // ---- Rendering ----
@@ -140,6 +137,12 @@ function renderWord() {
     isFinal ? 'word-final' : ''
   ].filter(Boolean).join(' ');
 
+  // Color logic:
+  //   isFinal           → every letter at full opacity in its result color.
+  //   i === letterIdx   → active letter (dark, bold).
+  //   has stored result → faded green or faded red (held even if user
+  //                       navigates back/forward without re-grading).
+  //   else              → pending (gray, faded).
   const letters = currentItem.letters.map((ch, i) => {
     let cls;
     if (isFinal) {
@@ -147,11 +150,11 @@ function renderWord() {
       cls = r === 'missed' ? 'final-wrong' : 'final-correct';
     } else if (i === letterIdx) {
       cls = 'active';
-    } else if (i < letterIdx) {
-      const r = wordLetterResults[i];
-      cls = r === 'missed' ? 'wrong' : 'correct';
     } else {
-      cls = 'pending';
+      const r = wordLetterResults[i];
+      if (r === 'missed') cls = 'wrong';
+      else if (r === 'correct') cls = 'correct';
+      else cls = 'pending';
     }
     return `<span class="word-letter ${cls}" lang="si" translate="no">${ch}</span>`;
   }).join('');
@@ -236,16 +239,12 @@ function advance() {
     return;
   }
 
-  // Word: just finished last letter — celebrate the whole word.
+  // Word: just finished last letter — show the whole word in result colors.
+  // No auto-advance — parent presses Down/Right to move to the next word.
   if (isWord && !showingFullWord) {
     showingFullWord = true;
     showCurrent();
     happyChime(); // a little reward for completing the word
-    if (fullWordTimer) clearTimeout(fullWordTimer);
-    fullWordTimer = setTimeout(() => {
-      fullWordTimer = null;
-      goToNextItem();
-    }, FULL_WORD_DISPLAY_MS);
     return;
   }
 
@@ -254,7 +253,6 @@ function advance() {
 }
 
 function goToNextItem() {
-  if (fullWordTimer) { clearTimeout(fullWordTimer); fullWordTimer = null; }
   resetItemState();
   itemIdx++;
   setTierIndex(progressRef, currentTier.id, itemIdx);
@@ -270,10 +268,6 @@ function goToNextItem() {
 
 function prevItem() {
   if (inFlight || attempt === 2) return;
-  if (showingFullWord) {
-    // Skip the celebration and step back.
-    if (fullWordTimer) { clearTimeout(fullWordTimer); fullWordTimer = null; }
-  }
   if (itemIdx > 0) {
     itemIdx--;
     resetItemState();
@@ -287,7 +281,6 @@ function prevItem() {
 function nextItem() {
   if (inFlight) return;
   if (showingFullWord) {
-    // Skip the celebration timer and advance.
     goToNextItem();
     return;
   }
@@ -306,7 +299,6 @@ function nextItem() {
 
 function exitToHome() {
   uninstallKeyHandler();
-  if (fullWordTimer) { clearTimeout(fullWordTimer); fullWordTimer = null; }
   tapClick();
   onLessonExitCb();
 }
@@ -350,61 +342,117 @@ function flash(kind) {
   setTimeout(() => el.remove(), 600);
 }
 
+// ---- Within-word letter navigation ----
+//
+// For word items, Left/Right move the active letter pointer back/forward
+// inside the word. Going past either end advances to the next/previous word.
+
+function prevLetter() {
+  if (inFlight || attempt === 2) return;
+  if (currentItem?.type !== 'word') {
+    prevItem();
+    return;
+  }
+  if (showingFullWord) {
+    // Step back into the word at the last letter.
+    showingFullWord = false;
+    letterIdx = currentItem.letters.length - 1;
+    tapClick();
+    showCurrent();
+    return;
+  }
+  if (letterIdx > 0) {
+    letterIdx--;
+    tapClick();
+    showCurrent();
+  } else {
+    prevItem();
+  }
+}
+
+function nextLetter() {
+  if (inFlight || attempt === 2) return;
+  if (currentItem?.type !== 'word') {
+    nextItem();
+    return;
+  }
+  if (showingFullWord) {
+    nextItem();
+    return;
+  }
+  if (letterIdx < currentItem.letters.length - 1) {
+    letterIdx++;
+    tapClick();
+    showCurrent();
+  } else {
+    // At last letter — drop into the full-word celebration view.
+    showingFullWord = true;
+    showCurrent();
+  }
+}
+
 // ---- Keyboard ----
+//
+// Arrows are reserved for letter/word navigation, so grading uses the
+// remote's color buttons (and equivalents on a regular keyboard).
+//
+//   Up                          → previous item (letter or word)
+//   Down                        → next item (letter or word)
+//   Left                        → previous letter inside current word
+//                                  (jumps to previous item at start)
+//   Right                       → next letter inside current word
+//                                  (jumps to next item at end)
+//
+//   B  (Green)  / Enter / Space → mark ✓ (correct)
+//   A  (Red)    / Backspace     → mark ✗ (wrong)
+//   C  (Yellow) / Escape        → back to home
+//
+// Different TVs send different key codes for the color buttons; we bind
+// every common variant so any remote works:
+//   Red    → 'F1', 'a', 'A', 'ColorF0Red'
+//   Green  → 'F2', 'b', 'B', 'ColorF1Green'
+//   Yellow → 'F3', 'c', 'C', 'ColorF2Yellow'
+
+const YES_KEYS  = new Set([
+  'Enter', ' ', 'y', 'Y', '2',
+  'F2', 'b', 'B', 'ColorF1Green'  // Green / B button
+]);
+const NO_KEYS   = new Set([
+  'Backspace', 'n', 'N', '1',
+  'F1', 'a', 'A', 'ColorF0Red'    // Red / A button
+]);
+const HOME_KEYS = new Set([
+  'Escape',
+  'F3', 'c', 'C', 'ColorF2Yellow' // Yellow / C button
+]);
 
 function lessonKeys(e) {
   if (!containerRef || !document.body.contains(containerRef)) return;
   if (containerRef.querySelector('.lesson-done')) return;
 
-  // During the full-word celebration, any "advance"-like key skips early;
-  // grading keys are no-ops.
-  if (showingFullWord) {
-    switch (e.key) {
-      case 'ArrowRight':
-      case 'ArrowDown':
-      case 'Enter':
-      case ' ':
-        e.preventDefault();
-        nextItem();
-        break;
-      case 'ArrowUp':
-      case 'ArrowLeft':
-        e.preventDefault();
-        prevItem();
-        break;
-      case 'Escape':
-      case 'Backspace':
-        e.preventDefault();
-        exitToHome();
-        break;
-    }
+  if (HOME_KEYS.has(e.key)) {
+    e.preventDefault();
+    exitToHome();
     return;
   }
 
   switch (e.key) {
-    case 'ArrowLeft':
-      e.preventDefault();
-      onNo();
-      break;
-    case 'ArrowRight':
-    case 'Enter':
-    case ' ':
-      e.preventDefault();
-      onYes();
-      break;
-    case 'ArrowUp':
-      e.preventDefault();
-      prevItem();
-      break;
-    case 'ArrowDown':
-      e.preventDefault();
-      nextItem();
-      break;
-    case 'Escape':
-    case 'Backspace':
-      e.preventDefault();
-      exitToHome();
-      break;
+    case 'ArrowUp':    e.preventDefault(); prevItem();   return;
+    case 'ArrowDown':  e.preventDefault(); nextItem();   return;
+    case 'ArrowLeft':  e.preventDefault(); prevLetter(); return;
+    case 'ArrowRight': e.preventDefault(); nextLetter(); return;
+  }
+
+  if (YES_KEYS.has(e.key)) {
+    e.preventDefault();
+    if (showingFullWord) nextItem();
+    else onYes();
+    return;
+  }
+  if (NO_KEYS.has(e.key)) {
+    e.preventDefault();
+    if (!showingFullWord) onNo();
+    return;
   }
 }
 

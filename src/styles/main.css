@@ -586,6 +586,12 @@ button:focus-visible {
 @media (min-width: 1280px) {
   :root { --radius: 28px; }
 
+  /* Hide the mouse pointer on TV-class screens — parent navigates with the
+     remote arrow keys. Note: some TV browsers (LG WebOS magic remote)
+     render the cursor at the OS level and ignore CSS; for those, a focus
+     indicator on the ✓ button still shows where Enter will go. */
+  html, body, * { cursor: none !important; }
+
   .screen { padding: 2.5rem 4rem; gap: 2rem; }
 
   .home-main { gap: 1.5rem; }
