@@ -393,56 +393,92 @@ function nextLetter() {
 
 // ---- Keyboard ----
 //
-// Arrows are reserved for letter/word navigation, so grading uses the
-// remote's color buttons (and equivalents on a regular keyboard).
+// Bind both `e.key` (modern) and `e.keyCode` (legacy) because Samsung
+// Tizen TV browsers populate keyCode for some remote buttons but leave
+// e.key empty.
 //
 //   Up                          → previous item (letter or word)
 //   Down                        → next item (letter or word)
 //   Left                        → previous letter inside current word
-//                                  (jumps to previous item at start)
 //   Right                       → next letter inside current word
-//                                  (jumps to next item at end)
 //
-//   B  (Green)  / Enter / Space → mark ✓ (correct)
-//   A  (Red)    / Backspace     → mark ✗ (wrong)
-//   C  (Yellow) / Escape        → back to home
+//   OK / Enter / Space          → ✓ correct
+//   Back / Backspace            → ✗ wrong
 //
-// Different TVs send different key codes for the color buttons; we bind
-// every common variant so any remote works:
-//   Red    → 'F1', 'a', 'A', 'ColorF0Red'
-//   Green  → 'F2', 'b', 'B', 'ColorF1Green'
-//   Yellow → 'F3', 'c', 'C', 'ColorF2Yellow'
+//   B  (Green button)           → ✓ correct
+//   A  (Red button)             → ✗ wrong
+//   C  (Yellow button)          → home
+//   D  (Blue button)            → (unbound)
+//
+// Samsung Tizen keyCode reference:
+//   Red=403, Green=404, Yellow=405, Blue=406, Return/Back=10009.
+// Standard keys ('Enter', 'Backspace', 'Arrow*', 'Escape') work on all
+// browsers including Samsung's.
 
 const YES_KEYS  = new Set([
   'Enter', ' ', 'y', 'Y', '2',
-  'F2', 'b', 'B', 'ColorF1Green'  // Green / B button
+  'F2', 'b', 'B', 'ColorF1Green'
 ]);
 const NO_KEYS   = new Set([
   'Backspace', 'n', 'N', '1',
-  'F1', 'a', 'A', 'ColorF0Red'    // Red / A button
+  'F1', 'a', 'A', 'ColorF0Red'
 ]);
 const HOME_KEYS = new Set([
   'Escape',
-  'F3', 'c', 'C', 'ColorF2Yellow' // Yellow / C button
+  'F3', 'c', 'C', 'ColorF2Yellow'
 ]);
+
+// Samsung Tizen-specific numeric keyCodes for buttons whose `e.key`
+// often comes through as an empty string in the TV browser.
+const SAMSUNG_RED    = 403;
+const SAMSUNG_GREEN  = 404;
+const SAMSUNG_YELLOW = 405;
+const SAMSUNG_BLUE   = 406;
+const SAMSUNG_RETURN = 10009;
 
 function lessonKeys(e) {
   if (!containerRef || !document.body.contains(containerRef)) return;
   if (containerRef.querySelector('.lesson-done')) return;
 
+  // 1. Samsung Tizen color buttons + Back button — checked by keyCode
+  //    because e.key is unreliable on Tizen for these.
+  switch (e.keyCode) {
+    case SAMSUNG_RED:
+      e.preventDefault();
+      if (!showingFullWord) onNo();
+      return;
+    case SAMSUNG_GREEN:
+      e.preventDefault();
+      if (showingFullWord) nextItem();
+      else onYes();
+      return;
+    case SAMSUNG_YELLOW:
+      e.preventDefault();
+      exitToHome();
+      return;
+    case SAMSUNG_BLUE:
+      e.preventDefault();
+      // Reserved for future use.
+      return;
+    case SAMSUNG_RETURN:
+      e.preventDefault();
+      if (!showingFullWord) onNo();
+      else exitToHome();
+      return;
+  }
+
+  // 2. Standard keys (work on all browsers).
   if (HOME_KEYS.has(e.key)) {
     e.preventDefault();
     exitToHome();
     return;
   }
-
   switch (e.key) {
     case 'ArrowUp':    e.preventDefault(); prevItem();   return;
     case 'ArrowDown':  e.preventDefault(); nextItem();   return;
     case 'ArrowLeft':  e.preventDefault(); prevLetter(); return;
     case 'ArrowRight': e.preventDefault(); nextLetter(); return;
   }
-
   if (YES_KEYS.has(e.key)) {
     e.preventDefault();
     if (showingFullWord) nextItem();
