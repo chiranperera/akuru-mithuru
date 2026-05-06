@@ -65,41 +65,54 @@ button:focus-visible {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1.2rem;
-  gap: 1.2rem;
+  padding: 1rem;
+  gap: 0.8rem;
 }
 
-/* ===== Home top bar (streak + parent) ===== */
+/* Home is constrained to viewport height — no scrolling. */
+.screen.home {
+  height: 100vh;
+  height: 100dvh; /* dynamic viewport on mobile so URL bar doesn't push us */
+  padding: 0.7rem 0.9rem;
+  gap: 0.7rem;
+  overflow: hidden;
+}
+
+/* ===== Home top bar (streak + title + parent) ===== */
 
 .home-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.6rem;
+  flex-shrink: 0;
 }
 
 .streak {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
   background: var(--bg-card);
   border-radius: 999px;
-  padding: 0.5rem 1rem;
+  padding: 0.35rem 0.8rem;
   box-shadow: var(--shadow);
   font-weight: 700;
+  flex-shrink: 0;
 }
 .streak.active {
   background: linear-gradient(135deg, #ffba6c, #ff7a00);
   color: white;
 }
-.streak-flame { font-size: 1.4rem; }
-.streak-count { font-size: 1.2rem; }
+.streak-flame { font-size: 1.1rem; }
+.streak-count { font-size: 1rem; }
 
 .parent-corner {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  font-size: 0.85rem;
+  gap: 0.4rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 .parent-name { font-weight: 600; }
 
@@ -108,112 +121,106 @@ button:focus-visible {
   border: none;
   color: var(--text-muted);
   text-decoration: underline;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   padding: 0.2rem 0.4rem;
 }
 
-/* ===== Home main ===== */
-
-.home-main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+.app-title {
   flex: 1;
   text-align: center;
-}
-
-.app-title {
-  font-size: clamp(2.2rem, 8vw, 3.6rem);
-  margin: 0.2rem 0 0;
+  font-size: clamp(1.3rem, 5vw, 1.9rem);
+  margin: 0;
   color: var(--primary);
-  text-shadow: 0 2px 0 rgba(255, 122, 0, 0.15);
+  text-shadow: 0 2px 0 rgba(255, 122, 0, 0.12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.overall-mastered {
+/* ===== Home main — fills available space, never scrolls ===== */
+
+.home-main {
+  flex: 1;
   display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  background: var(--bg-card);
-  border-radius: 999px;
-  padding: 0.4rem 1rem;
-  box-shadow: var(--shadow);
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
 }
-.overall-mastered .mastered-num {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--primary);
-}
-.overall-mastered .mastered-of { color: var(--text-muted); font-size: 1rem; }
-.overall-mastered .mastered-label { color: var(--text); font-size: 1rem; margin-left: 0.3rem; }
 
-/* ===== Tier grid ===== */
+/* ===== Tier grid (always 2 columns) ===== */
 
 .tier-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
   width: 100%;
-  max-width: 480px;
+  height: 100%;
+  max-width: 560px;
 }
 
 .tier-card {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: 1rem 1.1rem 1.1rem;
+  padding: 0.8rem 0.85rem;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.45rem;
   border: 3px solid transparent;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  min-height: 0;
 }
-.tier-card:focus-within { border-color: var(--primary); }
+.tier-card:focus-within,
+.tier-card:hover { border-color: var(--primary); transform: translateY(-1px); }
 
 .tier-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
+  gap: 0.4rem;
 }
 
 .tier-card-title {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.4rem;
   flex: 1;
   text-align: left;
+  min-width: 0;
 }
 
 .tier-num {
   background: var(--primary);
   color: white;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.tier-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tier-reset {
+  background: #f3ede0;
+  color: var(--text-muted);
   width: 1.8rem;
   height: 1.8rem;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 0.95rem;
-  flex-shrink: 0;
-}
-
-.tier-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.tier-reset {
-  background: #f3ede0;
-  color: var(--text-muted);
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
+  font-size: 0.9rem;
   font-weight: 700;
   flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease;
@@ -227,7 +234,7 @@ button:focus-visible {
 .tier-progress {
   background: #f3ede0;
   border-radius: 999px;
-  height: 8px;
+  height: 6px;
   overflow: hidden;
 }
 .tier-progress-bar {
@@ -239,11 +246,39 @@ button:focus-visible {
 .tier-progress-text {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
+  gap: 0.3rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
 }
 .tier-progress-text .dot { opacity: 0.5; }
+
+/* ===== Home foot (overall stats) ===== */
+
+.home-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.overall-mastered {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  background: var(--bg-card);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  box-shadow: var(--shadow);
+}
+.overall-mastered .mastered-num {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+.overall-mastered .mastered-of { color: var(--text-muted); font-size: 0.85rem; }
+.overall-mastered .mastered-label { color: var(--text); font-size: 0.85rem; margin-left: 0.25rem; }
 
 .big-btn {
   background: var(--primary);
@@ -274,15 +309,16 @@ button:focus-visible {
 .big-btn.danger:active { box-shadow: 0 2px 0 var(--danger-dark); }
 
 .tier-continue {
-  font-size: 1.1rem;
-  padding: 0.85rem 1.6rem;
+  font-size: 0.95rem;
+  padding: 0.55rem 1rem;
   align-self: center;
   min-width: 70%;
+  margin-top: auto; /* push to bottom of card */
 }
 
 .hint {
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   margin: 0;
 }
 
@@ -590,24 +626,35 @@ button:focus-visible {
      browsers convert the D-pad into pointer movement, so hiding the
      cursor would hide the only thing you can aim with. */
 
-  .screen { padding: 2.5rem 4rem; gap: 2rem; }
+  .screen { padding: 1.6rem 3rem; gap: 1.2rem; }
 
-  .home-main { gap: 1.5rem; }
-  .app-title { font-size: 5rem; }
+  .screen.home {
+    padding: 1.5rem 3rem;
+    gap: 1rem;
+  }
+
+  .app-title { font-size: 2.6rem; }
+  .streak-flame { font-size: 1.6rem; }
+  .streak-count { font-size: 1.4rem; }
+  .parent-corner { font-size: 1rem; }
+  .link-btn { font-size: 0.95rem; }
 
   .tier-grid {
-    max-width: 900px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.2rem;
+    max-width: 1100px;
+    gap: 1.4rem;
   }
-  .tier-card { padding: 1.6rem; gap: 1rem; }
-  .tier-num { width: 2.4rem; height: 2.4rem; font-size: 1.2rem; }
-  .tier-name { font-size: 1.6rem; }
-  .tier-reset { width: 3rem; height: 3rem; font-size: 1.5rem; }
-  .tier-progress { height: 12px; }
+  .tier-card { padding: 1.6rem 1.8rem; gap: 0.9rem; }
+  .tier-num { width: 2.2rem; height: 2.2rem; font-size: 1.1rem; }
+  .tier-name { font-size: 1.5rem; white-space: normal; }
+  .tier-reset { width: 2.6rem; height: 2.6rem; font-size: 1.3rem; }
+  .tier-progress { height: 10px; }
   .tier-progress-text { font-size: 1rem; }
-  .tier-continue { font-size: 1.5rem; padding: 1rem 2.2rem; }
+  .tier-continue { font-size: 1.3rem; padding: 0.9rem 1.8rem; }
+
+  .overall-mastered { padding: 0.5rem 1.2rem; }
+  .overall-mastered .mastered-num { font-size: 1.5rem; }
+  .overall-mastered .mastered-of,
+  .overall-mastered .mastered-label { font-size: 1rem; }
 
   /* Bigger nav chevrons on TV — the pointer-driven remote needs an
      unmissable target for prev / next item. */

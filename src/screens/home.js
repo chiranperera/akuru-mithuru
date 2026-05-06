@@ -36,6 +36,7 @@ export function renderHome(container, progress, callbacks) {
           <span class="streak-flame" translate="no">${progress.streak.count > 0 ? '🔥' : '✨'}</span>
           <span class="streak-count" translate="no">${progress.streak.count}</span>
         </div>
+        <h1 class="app-title sinhala" lang="si" translate="no">අකුරු මිතුරු</h1>
         <div class="parent-corner" translate="no">
           ${isSignedIn()
             ? `<span class="parent-name" translate="no">${escapeHtml(parentName || '')}</span>
@@ -45,22 +46,21 @@ export function renderHome(container, progress, callbacks) {
       </header>
 
       <main class="home-main" translate="no">
-        <h1 class="app-title sinhala" lang="si" translate="no">අකුරු මිතුරු</h1>
+        <div class="tier-grid" translate="no">
+          ${TIERS.map(t => renderTierCard(t, progress)).join('')}
+        </div>
+      </main>
 
+      <footer class="home-foot" translate="no">
         <div class="overall-mastered" translate="no">
           <span class="mastered-num" translate="no">${totalMastered}</span>
           <span class="mastered-of" translate="no">/ ${totalLetters}</span>
           <span class="mastered-label" lang="si" translate="no">අකුරු</span>
         </div>
-
-        <div class="tier-grid" translate="no">
-          ${TIERS.map(t => renderTierCard(t, progress)).join('')}
-        </div>
-
         ${!playedToday && progress.streak.count > 0 ? `
           <p class="hint" lang="si" translate="no">අද පාඩම තවම නැහැ! 🌟</p>
         ` : ''}
-      </main>
+      </footer>
     </div>
   `;
 
